@@ -10,13 +10,13 @@ nltk.data.path.append(os.getcwd())
 
 
 def get_prompt(N):
-    books = np.random.choice(corpus.fileids(), size=1)
-    text = corpus.raw(books)
+    book = np.random.choice(corpus.fileids(), size=1)[0]
+    text = corpus.raw(book)
     text = ''.join(ch for ch in text if ch not in string.punctuation)
     text = text.lower().split()
     M = N
     i = np.random.randint(0, len(text)-M)
-    return ' '.join(text[i:i+M])
+    return book.replace(".txt", "").replace("-", " "), ' '.join(text[i:i+M])
 
 
 if __name__ == "__main__":
@@ -56,42 +56,55 @@ if __name__ == "__main__":
             def test_with_prompts_and_sentences(prompts, sentences):
                 for sentence in sentences:
                     qdrant.put_point(
-                        model.embed(sentence),
-                        text=sentence
+                        model.embed(sentence[1]),
+                        text=sentence[1],
+                        title=sentence[0]
                     )
                 for prompt in prompts:
                     print("----------------------")
-                    print("Prompt: ", prompt)
-                    embedding = model.embed(prompt)
-                    print(model.generate(prompt))
+                    # print("Prompt: ", prompt)
+                    # embedding = model.embed(prompt)
+                    # print(model.generate(prompt))
+                    # print("******************")
+                    # context = qdrant.generate_context(qdrant.query(embedding))
+                    # print("Best context: ", context)
+                    # print(model.generate_with_knoledge(prompt, context))
+                    # print("******************")
+                    # context = qdrant.generate_context(qdrant.query_positive_negative(positive_vector=[
+                    #                                   model.embed(sentence[1]) for sentence in sentences], negative_vector=[embedding]))
+                    # print("Context: ", context)
+                    # print(model.generate_with_knoledge(prompt, context))
+                    # print("******************")
+                    # context = qdrant.generate_context(qdrant.query_random())
+                    # print("Random context: ", context)
+                    # print(model.generate_with_knoledge(prompt, context))
                     print("******************")
-                    context = qdrant.generate_context(qdrant.query(embedding))
-                    print("Best context: ", context)
-                    print(model.generate_with_knoledge(prompt, context))
-                    print("******************")
-                    context = qdrant.generate_context(qdrant.query_positive_negative(positive_vector=[model.embed(sentence) for sentence in sentences], negative_vector=[embedding]))
-                    print("Context: ", context)
-                    print(model.generate_with_knoledge(prompt, context))
-                    print("******************")
-                    context = qdrant.generate_context(qdrant.query_random())
-                    print("Random context: ", context)
+                    context = qdrant.generate_context(qdrant.query_filter(filters=[{
+                        "key": "title",
+                        "match": {
+                            "any": [
+                                "austen-emma.txt",
+                                'austen-persuasion.txt',
+                                'austen-sense.txt'
+                            ]
+                        }
+                    }]))
+                    print("Austen context: ", context)
                     print(model.generate_with_knoledge(prompt, context))
                 print("----------------------")
 
-
-            test_with_prompts_and_sentences(
-                ["Hello, how are you?",
-                 "Ciao, come stai?"],
-                sentences=[
-                    "Hello world",
-                    "Ciao mondo"
-                ]
-            )
-            # print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
             # test_with_prompts_and_sentences(
             #     ["Hello, how are you?",
             #      "Ciao, come stai?"],
-            #     sentences=[get_prompt(10) for i in range(100)]
+            #     sentences=[
+            #         "Hello world",
+            #         "Ciao mondo"
+            #     ]
             # )
+            print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+            test_with_prompts_and_sentences(
+                ["Hello, how are you?"],
+                sentences=[get_prompt(10) for i in range(100)]
+            )
         except req.RequestException as e:
             print(f"An error occurred: {e}")

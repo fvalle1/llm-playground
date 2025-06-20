@@ -56,13 +56,17 @@ class QDrant(API):
             }
         return list(map(describe, points))
 
-    def query(self, query_data, prefetch={}, limit=1):
+    def query(self, query_data: dict = None, prefetch: dict = None, filters: list = None, limit: int = 1):
         data = {
-            "prefetch": prefetch,
-            "query": query_data,
             "limit": limit,
             "with_payload": True
         }
+        if prefetch is not None:
+            data["prefetch"] = prefetch
+        if filters is not None:
+            data["filters"] = filters
+        if query_data is not None:
+            data["query"] = query_data
         return self.post(self.collection_url+"points/query", data=data)["result"]["points"]
 
     def query_random(self):
@@ -80,5 +84,12 @@ class QDrant(API):
             }
         )
 
+    def query_filter(self, filters: list = []):
+        return self.query(
+            filters={
+                "must": filters
+            }
+        )
+
     def generate_context(self, points, key="text"):
-        return ";".join([point[key] for point in self.describe_points(points)])
+        return ";".join([point[key]+f" [{point['title']}]" for point in self.describe_points(points)])
